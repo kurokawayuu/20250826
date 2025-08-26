@@ -8226,45 +8226,298 @@ if (!function_exists('flush_job_indexing_rewrite_rules')) {
     add_action('init', 'flush_job_indexing_rewrite_rules', 99);
 }
 
+
+
 /**
- * 13. 簡易診断表示
+ * 都道府県別教室一覧のSEO対応リライトルール
+ * functions.phpに追加してください
  */
-if (!function_exists('display_job_indexing_diagnosis')) {
-    function display_job_indexing_diagnosis() {
-        if (is_singular('job') && current_user_can('administrator') && isset($_GET['debug'])) {
-            global $post;
-            
-            $current_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
-            
-            echo '<div style="position: fixed; top: 50px; right: 20px; background: #fff; border: 2px solid #00a32a; padding: 15px; width: 350px; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">';
-            echo '<h4 style="margin:0 0 10px 0; color: #00a32a;">求人インデックス診断</h4>';
-            echo '<p style="margin: 5px 0; font-size: 12px;"><strong>求人ID:</strong> ' . $post->ID . '</p>';
-            echo '<p style="margin: 5px 0; font-size: 12px;"><strong>URL:</strong> ' . $current_url . '</p>';
-            echo '<p style="color: green; margin: 5px 0;">✅ canonical設定済み</p>';
-            echo '<p style="color: green; margin: 5px 0;">✅ robots: index, follow</p>';
-            echo '<p style="color: green; margin: 5px 0;">✅ 構造化データ出力済み</p>';
-            echo '<p style="color: green; margin: 5px 0;">✅ サイトマップ登録済み</p>';
-            echo '<p style="margin: 10px 0 0 0;"><a href="https://search.google.com/search-console/inspect?resource_id=' . urlencode(home_url()) . '&id=' . urlencode($current_url) . '" target="_blank" style="color: #0073aa; font-size: 12px;">Google Search Consoleで確認</a></p>';
-            echo '</div>';
-        }
-    }
-    add_action('wp_footer', 'display_job_indexing_diagnosis');
+
+// 都道府県マッピング
+function get_prefecture_mapping() {
+    return array(
+        'hokkaido' => array('id' => 1, 'name' => '北海道'),
+        'aomori' => array('id' => 2, 'name' => '青森県'),
+        'iwate' => array('id' => 3, 'name' => '岩手県'),
+        'miyagi' => array('id' => 4, 'name' => '宮城県'),
+        'akita' => array('id' => 5, 'name' => '秋田県'),
+        'yamagata' => array('id' => 6, 'name' => '山形県'),
+        'fukushima' => array('id' => 7, 'name' => '福島県'),
+        'ibaraki' => array('id' => 8, 'name' => '茨城県'),
+        'tochigi' => array('id' => 9, 'name' => '栃木県'),
+        'gunma' => array('id' => 10, 'name' => '群馬県'),
+        'saitama' => array('id' => 11, 'name' => '埼玉県'),
+        'chiba' => array('id' => 12, 'name' => '千葉県'),
+        'tokyo' => array('id' => 13, 'name' => '東京都'),
+        'kanagawa' => array('id' => 14, 'name' => '神奈川県'),
+        'niigata' => array('id' => 15, 'name' => '新潟県'),
+        'toyama' => array('id' => 16, 'name' => '富山県'),
+        'ishikawa' => array('id' => 17, 'name' => '石川県'),
+        'fukui' => array('id' => 18, 'name' => '福井県'),
+        'yamanashi' => array('id' => 19, 'name' => '山梨県'),
+        'nagano' => array('id' => 20, 'name' => '長野県'),
+        'gifu' => array('id' => 21, 'name' => '岐阜県'),
+        'shizuoka' => array('id' => 22, 'name' => '静岡県'),
+        'aichi' => array('id' => 23, 'name' => '愛知県'),
+        'mie' => array('id' => 24, 'name' => '三重県'),
+        'shiga' => array('id' => 25, 'name' => '滋賀県'),
+        'kyoto' => array('id' => 26, 'name' => '京都府'),
+        'osaka' => array('id' => 27, 'name' => '大阪府'),
+        'hyogo' => array('id' => 28, 'name' => '兵庫県'),
+        'nara' => array('id' => 29, 'name' => '奈良県'),
+        'wakayama' => array('id' => 30, 'name' => '和歌山県'),
+        'tottori' => array('id' => 31, 'name' => '鳥取県'),
+        'shimane' => array('id' => 32, 'name' => '島根県'),
+        'okayama' => array('id' => 33, 'name' => '岡山県'),
+        'hiroshima' => array('id' => 34, 'name' => '広島県'),
+        'yamaguchi' => array('id' => 35, 'name' => '山口県'),
+        'tokushima' => array('id' => 36, 'name' => '徳島県'),
+        'kagawa' => array('id' => 37, 'name' => '香川県'),
+        'ehime' => array('id' => 38, 'name' => '愛媛県'),
+        'kochi' => array('id' => 39, 'name' => '高知県'),
+        'fukuoka' => array('id' => 40, 'name' => '福岡県'),
+        'saga' => array('id' => 41, 'name' => '佐賀県'),
+        'nagasaki' => array('id' => 42, 'name' => '長崎県'),
+        'kumamoto' => array('id' => 43, 'name' => '熊本県'),
+        'oita' => array('id' => 44, 'name' => '大分県'),
+        'miyazaki' => array('id' => 45, 'name' => '宮崎県'),
+        'kagoshima' => array('id' => 46, 'name' => '鹿児島県'),
+        'okinawa' => array('id' => 47, 'name' => '沖縄県'),
+    );
 }
 
 /**
- * 14. 管理画面通知
+ * 都道府県別ページのリライトルールを追加
  */
-if (!function_exists('show_job_indexing_admin_notice')) {
-    function show_job_indexing_admin_notice() {
-        if (current_user_can('manage_options')) {
-            $total_jobs = wp_count_posts('job')->publish;
+function add_prefecture_rewrite_rules() {
+    $prefectures = get_prefecture_mapping();
+    
+    foreach ($prefectures as $slug => $data) {
+        add_rewrite_rule(
+            '^hokago-day-service/' . $slug . '/?$',
+            'index.php?pagename=list&prefecture=' . $slug,
+            'top'
+        );
+    }
+    
+    // メインページのルール
+    add_rewrite_rule(
+        '^hokago-day-service/?$',
+        'index.php?pagename=list',
+        'top'
+    );
+}
+add_action('init', 'add_prefecture_rewrite_rules');
+
+/**
+ * カスタムクエリ変数を追加
+ */
+function add_prefecture_query_vars($vars) {
+    $vars[] = 'prefecture';
+    return $vars;
+}
+add_filter('query_vars', 'add_prefecture_query_vars');
+
+/**
+ * 都道府県別ページのSEO対策
+ */
+function set_prefecture_seo_data() {
+    $prefecture_slug = get_query_var('prefecture');
+    
+    if ($prefecture_slug) {
+        $prefectures = get_prefecture_mapping();
+        
+        if (isset($prefectures[$prefecture_slug])) {
+            $pref_name = $prefectures[$prefecture_slug]['name'];
+            $site_name = get_bloginfo('name');
             
-            echo '<div class="notice notice-success">';
-            echo '<p><strong>✅ 求人インデックス対策:</strong> ';
-            echo '公開済み求人 ' . $total_jobs . '件がインデックス対象です。';
-            echo ' <a href="' . home_url('/wp-sitemap-posts-job-1.xml') . '" target="_blank">サイトマップ確認</a>';
-            echo '</p></div>';
+            // タイトルタグ
+            $title = "放課後等デイサービス・児童発達支援 {$pref_name}の教室一覧｜{$site_name}";
+            
+            // メタディスクリプション
+            $description = "{$pref_name}の放課後等デイサービス・児童発達支援教室を一覧でご紹介。こどもプラス加盟教室の所在地・連絡先・求人情報をまとめて確認できます。{$pref_name}で放課後等デイサービスをお探しなら{$site_name}へ。";
+            
+            // 現在のURL
+            $current_url = home_url('/hokago-day-service/' . $prefecture_slug . '/');
+            
+            add_action('wp_head', function() use ($title, $description, $current_url, $pref_name) {
+                echo '<title>' . esc_html($title) . '</title>' . "\n";
+                echo '<meta name="description" content="' . esc_attr($description) . '">' . "\n";
+                echo '<link rel="canonical" href="' . esc_url($current_url) . '">' . "\n";
+                
+                // Open Graph
+                echo '<meta property="og:title" content="' . esc_attr($title) . '">' . "\n";
+                echo '<meta property="og:description" content="' . esc_attr($description) . '">' . "\n";
+                echo '<meta property="og:url" content="' . esc_url($current_url) . '">' . "\n";
+                echo '<meta property="og:type" content="website">' . "\n";
+                
+                // 地域特化のメタタグ
+                echo '<meta name="geo.region" content="JP-' . get_prefecture_code($pref_name) . '">' . "\n";
+                echo '<meta name="geo.placename" content="' . esc_attr($pref_name) . '">' . "\n";
+                
+                // 構造化データ
+                $structured_data = array(
+                    '@context' => 'https://schema.org',
+                    '@type' => 'WebPage',
+                    'name' => $title,
+                    'description' => $description,
+                    'url' => $current_url,
+                    'about' => array(
+                        '@type' => 'Service',
+                        'name' => '放課後等デイサービス',
+                        'description' => $pref_name . 'の放課後等デイサービス教室一覧',
+                        'areaServed' => array(
+                            '@type' => 'Place',
+                            'name' => $pref_name
+                        )
+                    ),
+                    'breadcrumb' => array(
+                        '@type' => 'BreadcrumbList',
+                        'itemListElement' => array(
+                            array(
+                                '@type' => 'ListItem',
+                                'position' => 1,
+                                'name' => 'ホーム',
+                                'item' => home_url()
+                            ),
+                            array(
+                                '@type' => 'ListItem',
+                                'position' => 2,
+                                'name' => '放課後等デイサービス教室一覧',
+                                'item' => home_url('/hokago-day-service/')
+                            ),
+                            array(
+                                '@type' => 'ListItem',
+                                'position' => 3,
+                                'name' => $pref_name,
+                                'item' => $current_url
+                            )
+                        )
+                    )
+                );
+                
+                echo '<script type="application/ld+json">';
+                echo json_encode($structured_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                echo '</script>' . "\n";
+            }, 1);
         }
     }
-    add_action('admin_notices', 'show_job_indexing_admin_notice');
 }
+add_action('wp', 'set_prefecture_seo_data');
+
+/**
+ * 都道府県コードを取得するヘルパー関数
+ */
+function get_prefecture_code($pref_name) {
+    $codes = array(
+        '北海道' => '01', '青森県' => '02', '岩手県' => '03', '宮城県' => '04',
+        '秋田県' => '05', '山形県' => '06', '福島県' => '07', '茨城県' => '08',
+        '栃木県' => '09', '群馬県' => '10', '埼玉県' => '11', '千葉県' => '12',
+        '東京都' => '13', '神奈川県' => '14', '新潟県' => '15', '富山県' => '16',
+        '石川県' => '17', '福井県' => '18', '山梨県' => '19', '長野県' => '20',
+        '岐阜県' => '21', '静岡県' => '22', '愛知県' => '23', '三重県' => '24',
+        '滋賀県' => '25', '京都府' => '26', '大阪府' => '27', '兵庫県' => '28',
+        '奈良県' => '29', '和歌山県' => '30', '鳥取県' => '31', '島根県' => '32',
+        '岡山県' => '33', '広島県' => '34', '山口県' => '35', '徳島県' => '36',
+        '香川県' => '37', '愛媛県' => '38', '高知県' => '39', '福岡県' => '40',
+        '佐賀県' => '41', '長崎県' => '42', '熊本県' => '43', '大分県' => '44',
+        '宮崎県' => '45', '鹿児島県' => '46', '沖縄県' => '47'
+    );
+    
+    return isset($codes[$pref_name]) ? $codes[$pref_name] : '00';
+}
+
+/**
+ * リライトルールの強制更新
+ */
+function flush_prefecture_rewrite_rules() {
+    if (!get_option('prefecture_rules_flushed')) {
+        flush_rewrite_rules();
+        update_option('prefecture_rules_flushed', true);
+    }
+}
+add_action('init', 'flush_prefecture_rewrite_rules', 999);
+
+
+
+
+
+
+
+/**
+ * 都道府県別テーブルフィルタリング（data-id属性対応版）
+ */
+function add_prefecture_table_filter_by_data_id() {
+    $prefecture_slug = get_query_var('prefecture');
+    
+    if ($prefecture_slug && function_exists('get_prefecture_mapping')) {
+        $prefectures = get_prefecture_mapping();
+        
+        if (isset($prefectures[$prefecture_slug])) {
+            $pref_id = $prefectures[$prefecture_slug]['id']; // 都道府県ID
+            $pref_name = $prefectures[$prefecture_slug]['name'];
+            
+            add_action('wp_footer', function() use ($pref_id, $pref_name) {
+                echo '<script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    var prefId = "' . esc_js($pref_id) . '";
+                    var prefName = "' . esc_js($pref_name) . '";
+                    
+                    // data-id属性でフィルタリング
+                    var allElements = document.querySelectorAll("[data-id]");
+                    var visibleCount = 0;
+                    
+                    allElements.forEach(function(element) {
+                        var dataId = element.getAttribute("data-id");
+                        
+                        if (dataId === prefId) {
+                            element.style.display = "";
+                            // テーブルやコンテンツをカウント
+                            if (element.querySelector("table, .table") || element.tagName === "TABLE") {
+                                visibleCount++;
+                            }
+                        } else {
+                            element.style.display = "none";
+                        }
+                    });
+                    
+                    // 該当する都道府県のコンテンツがある場合
+                    if (visibleCount > 0) {
+                        var firstVisibleElement = document.querySelector("[data-id=\"" + prefId + "\"]");
+                        if (firstVisibleElement) {
+                            // メッセージを追加
+                            var existingMsg = document.querySelector(".prefecture-filter-info");
+                            if (existingMsg) {
+                                existingMsg.remove();
+                            }
+                            
+                            var msg = document.createElement("div");
+                            msg.className = "prefecture-filter-info";
+                            msg.innerHTML = "<strong>" + prefName + "の放課後等デイサービス教室</strong>";
+                            msg.style.cssText = "margin:20px 0 15px 0;padding:15px;background:linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);border-left:4px solid #0073aa;border-radius:4px;font-size:16px;color:#333;";
+                            
+                            firstVisibleElement.parentNode.insertBefore(msg, firstVisibleElement);
+                        }
+                    } else {
+                        // データがない場合
+                        var container = document.querySelector(".content, main, .main-content, body");
+                        if (container) {
+                            var noDataMsg = document.createElement("div");
+                            noDataMsg.className = "prefecture-no-data";
+                            noDataMsg.innerHTML = "<div style=\"text-align:center;padding:40px 20px;background:#f9f9f9;border:1px solid #ddd;border-radius:8px;margin:20px 0;\"><h3 style=\"color:#666;margin-bottom:10px;\">" + prefName + "の教室情報</h3><p style=\"color:#888;\">現在準備中です。詳細についてはお問い合わせください。</p></div>";
+                            container.appendChild(noDataMsg);
+                        }
+                    }
+                    
+                    // ページタイトルも更新
+                    var titleElement = document.querySelector("h1, .page-title, .entry-title");
+                    if (titleElement && !titleElement.textContent.includes(prefName)) {
+                        titleElement.textContent = prefName + "の放課後等デイサービス教室一覧";
+                    }
+                });
+                </script>';
+            });
+        }
+    }
+}
+add_action('wp', 'add_prefecture_table_filter_by_data_id');
